@@ -3,14 +3,7 @@ import System.IO;
 data DCuvant = Cuv {rep::String, frecventa::Int }
     deriving (Read, Show);
 
-
-class CreezaDCuvant a where 
-    creeazaDCuvant::String -> Int -> a;
-    -- esteInLista::[a] -> a -> Bool; 
-
-instance CreezaDCuvant DCuvant where
-    creeazaDCuvant cuvant frec = ( Cuv {rep=cuvant, frecventa=frec })
-
+-- Citeste dintr-un fisier continutul si adauga fiecare cuvant intr-o lista
 citesteDinFisier::String -> IO()
 citesteDinFisier numeFisier = do {
     hFis <- openFile numeFisier ReadMode;
@@ -19,22 +12,20 @@ citesteDinFisier numeFisier = do {
     
     singleWords <- return (words contents);
 
-    frecventaPentruFiecareCuvant singleWords singleWords;
+    print (stergeDuplicate singleWords);
 
     hClose hFis;
 }
 
-frecventaPentruFiecareCuvant::[String] -> [String] -> IO()
-frecventaPentruFiecareCuvant _ []  = return ();
-frecventaPentruFiecareCuvant listaCompleta (x: xs) = do {
-    numar <- return (wordFreq listaCompleta x 0);
+-- `elem` returneaza adevarat daca lista(al 2-lea argument) contine elementul (1 argument)
+stergeDuplicate :: [String] -> [String]
+stergeDuplicate = rdHelper []
+    where rdHelper vazut [] = vazut
+          rdHelper vazut (x:xs)
+              | x `elem` vazut = rdHelper vazut xs
+              | otherwise = rdHelper (vazut ++ [x]) xs
 
-
-    elem <- return (creeazaDCuvant x numar);
-    
-    frecventaPentruFiecareCuvant listaCompleta xs;
-}
-
+-- returneaza de cate ori apare un cuvant in lista data
 wordFreq :: [String] -> String -> Int -> Int
 wordFreq [] _ nr = nr
 wordFreq (x:xs) cuv nr = do {
