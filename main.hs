@@ -12,7 +12,8 @@ class DCuvantFunctii a where
     gasesteFrecventaPentruFiecareCuvant:: [String] -> [String] -> [a] -> [a]
     gasesteCelMaiFrecventCuvant:: [a] -> a -> a
     gasesteCelMaiPutinFrecventCuvant :: [a] -> a -> a
-    cautaFrecventaCuvant:: String -> [a] -> IO(Int)
+    cautaFrecventaCuvant:: String -> [a] -> IO Int
+    afiasreDCuvinteCuPrinText:: [a] -> Int -> IO()
 
 instance DCuvantFunctii DCuvant where
     gasesteFrecventaPentruFiecareCuvant _ [] cuvinte = cuvinte;
@@ -46,6 +47,13 @@ instance DCuvantFunctii DCuvant where
             firstElem <- return (head cuvinteGasite);
             return (frecventa firstElem);
         }
+    }
+
+    afiasreDCuvinteCuPrinText [] _ = return ();
+    afiasreDCuvinteCuPrinText (x: xs) randDeInceput = do {
+        spatii <- return (repcar ' ' (10 - length (rep x)));
+        printTextPeEcran randDeInceput 4 $ (rep x) ++ spatii  ++ " --- " ++ show (frecventa x) ++ "\n";
+        afiasreDCuvinteCuPrinText xs (randDeInceput + 1);
     }
 
 listareCuvinte:: String -> String -> [String] -> [[String]]
@@ -125,16 +133,20 @@ printTextPeEcran rand coloana text = do {
     setSGR [Reset];
 }
 
+repcar::Char -> Int -> String;
+repcar car 0 = [];
+repcar car nr = car:(repcar car (nr - 1));
+
 
 citesteAlegereUser:: IO Int
 citesteAlegereUser = do {
 
-    printTextPeEcran 8 4 "Alegere: ";
+    printTextPeEcran 9 4 "Alegere: ";
     nr <- getLine;
     recit <- try (evaluate (read nr::Int))::IO  (Either SomeException Int);
     case recit of
     {
-        Left exc -> setCursorPosition 8 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran 9 4 $ "Eroare: " ++ show exc)>>citesteAlegereUser;
+        Left exc -> setCursorPosition 9 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran 10 4 $ "Eroare: " ++ show exc)>>citesteAlegereUser;
 
         Right value -> clearScreen>>return value;
     }
@@ -146,16 +158,12 @@ afiseazaMeniu = do {
     printTextPeEcran 2 4 "2. Afisare cel mai frecvent cuvant.\n";
     printTextPeEcran 3 4 "3. Afisare cel mai putin frecvent cuvant.\n";
     printTextPeEcran 4 4 "4. Gaseste frecventa unui cuvant.\n";
+    printTextPeEcran 5 4 "5. Afiseaza toate cuvintele.\n";
 
-    printTextPeEcran 6 4 "0. Tastati 0 pentru iesire.\n";
+    printTextPeEcran 7 4 "0. Tastati 0 pentru iesire.\n";
 
     citesteAlegereUser;
 }
-primulElem:: ([String], [String], [DCuvant]) -> [String]
-primulElem (a,_,_) = a;
-
-al2leaElem:: ([String], [String], [DCuvant]) -> [String]
-al2leaElem (_,a,_) = a;
 
 al3lea:: ([String], [String], [DCuvant]) -> [DCuvant]
 al3lea (_,_,a) = a;
@@ -176,7 +184,7 @@ afiseazaCelMaiFrecventCuvant numeFisier = do {
 
     celMaiFrecventCuv <- return (gasesteCelMaiFrecventCuvant listaFrecvente (Cuv "" 0));
     clearScreen;
-    printTextPeEcran 1 4 $ "Cel mai frecvent cuvant este: " ++ (rep celMaiFrecventCuv) ++ ", numar aparitii: " ++ show (frecventa celMaiFrecventCuv);
+    printTextPeEcran 1 4 $ "Cel mai frecvent cuvant este: \"" ++ (rep celMaiFrecventCuv) ++ "\", numar aparitii: " ++ show (frecventa celMaiFrecventCuv);
     printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
 
     getLine;
@@ -193,7 +201,7 @@ afiseazaCelMaiPutinFrecventCuvant numeFisier = do {
 
     celMaiPutinFrecvent <- return (gasesteCelMaiPutinFrecventCuvant listaFrecvente (Cuv "test" 10000));
     clearScreen ;
-    printTextPeEcran 1 4 $ "Cel mai putin frecvent cuvant este: " ++ (rep celMaiPutinFrecvent) ++ ", numar de aparitii: " ++ show (frecventa celMaiPutinFrecvent);
+    printTextPeEcran 1 4 $ "Cel mai putin frecvent cuvant este: \"" ++ (rep celMaiPutinFrecvent) ++ "\", numar de aparitii: " ++ show (frecventa celMaiPutinFrecvent);
     printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
 
     getLine;
@@ -215,9 +223,26 @@ afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     frecventaCuvant <- (cautaFrecventaCuvant cuvant listaFrecvente);
 
     if frecventaCuvant == -1 then setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Yellow]>>printTextPeEcran 4 4 "Cuvantul nu a fost gasit.";
-    else printTextPeEcran 4 4 $ "Pentru cuvantul: " ++ cuvant ++ " frecventa este: " ++ show frecventaCuvant;
+    else printTextPeEcran 4 4 $ "Pentru cuvantul: \"" ++ cuvant ++ "\" frecventa este: " ++ show frecventaCuvant ++ ".";
 
     printTextPeEcran 5 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+
+    getLine;
+
+    clearScreen;
+    runMeniu numeFisier;
+}
+
+afiseazaToateCuvintele:: String -> IO()
+afiseazaToateCuvintele numeFisier = do {
+    liste <- (returnareToateListele numeFisier);
+    listaFrecvente <- return (al3lea liste);
+
+    clearScreen ;
+
+    afiasreDCuvinteCuPrinText listaFrecvente 1;
+
+    printTextPeEcran ((length listaFrecvente) + 2) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
 
     getLine;
 
@@ -234,8 +259,9 @@ runMeniu numeFisier = do {
         2 -> afiseazaCelMaiFrecventCuvant numeFisier;
         3 -> afiseazaCelMaiPutinFrecventCuvant numeFisier;
         4 -> afiseazaFrecventaCuvantDeLaUser numeFisier;
+        5 -> afiseazaToateCuvintele numeFisier;
         0 -> return ();
-        _ -> setCursorPosition 9 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 9 4 "Alegerea nu exista.">>runMeniu numeFisier;
+        _ -> setCursorPosition 9 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 10 4 "Alegerea nu exista.">>runMeniu numeFisier;
     }
 }
 
@@ -244,26 +270,8 @@ runProgram = do {
     clearScreen;
     numeFisier <- citesteNumeFisierSiVerificaDacaExista;
     if numeFisier == "0" then return ()
-    else do {
-        -- liste <- citesteDinFisier numeFisier;
-        -- listaCompleta <- return (fst liste);
-        -- listaFaraDubluri <- return (snd liste);
-        -- listaFrecvente <- return (gasesteFrecventaPentruFiecareCuvant listaCompleta listaFaraDubluri ([]:: [DCuvant]));
-
-        -- print listaFrecvente;
-
-        -- print (gasesteCelMaiFrecventCuvant listaFrecvente (Cuv "" 0));
-        -- print (gasesteCelMaiPutinFrecventCuvant listaFrecvente (Cuv "test" 10000));
-
-        -- frecventaCuvCautat <- (cautaFrecventaCuvant "213213" listaFrecvente);
-
-        -- print (frecventaCuvCautat);
-
-        -- numar <- (citesteAlegereUser); 
-
-        -- print (numar);
-        runMeniu numeFisier
-    }
+    else runMeniu numeFisier
+   
 }
 
 main = runProgram
