@@ -61,7 +61,7 @@ listareCuvinte [] cuv  toateCuv = do {
     return (toateCuv ++ [cuv]);
 }
 listareCuvinte (x: xs) cuvantCurent toateCuvintele = do {
-    if( x == ' ' || x == '.' || x == ',') then do {
+    if( x == ' ' || x == '.' || x == ',' || x == '\n') then do {
         if(cuvantCurent == "") then listareCuvinte xs "" toateCuvintele
         else do {
             toateCuvUpdate <- return (toateCuvintele ++ [cuvantCurent]);
@@ -79,9 +79,9 @@ citesteDinFisier  numeFis = do {
 
     contents <- readFile numeFis;
 
-    singleWords <- return (words contents);
+    singleWords <- return (head (listareCuvinte contents "" []));
 
-    return (singleWords, (stergeDuplicate singleWords))
+    return (singleWords, (stergeDuplicate  singleWords))
 }
 -- sterge elementele duplicate dintr-o lista
 -- `elem` returneaza adevarat daca lista(al 2-lea argument) contine elementul (1 argument)
