@@ -4,10 +4,7 @@ import System.Console.ANSI;
 import Control.Exception;
 import Data.List;
 
-
-
-data DCuvant = Cuv {rep::String, frecventa::Int }
-    deriving (Ord, Eq, Show);
+data DCuvant = Cuv {rep::String, frecventa::Int } deriving (Ord, Eq, Show);
 
 class DCuvantFunctii a where
     -- pentru fiecare cuvant citit din fisier cauta de cate ori apare
@@ -56,28 +53,34 @@ instance DCuvantFunctii DCuvant where
         }
     }
 
+    -- afiseaza cuvat   --- frecventa pentru fiecare DCuvant 
     afiasreDCuvinteCuPrinText [] _ = return ();
     afiasreDCuvinteCuPrinText (x: xs) randDeInceput = do {
         spatii <- return (repcar ' ' (18 - length (rep x)));
-        printTextPeEcran randDeInceput 4 $ (rep x) ++ spatii  ++ " --- " ++ show (frecventa x) ++ "\n";
+        printTextPeEcran randDeInceput 4 $ (rep x) ++ spatii  ++ " --- " ++ show (frecventa x) ++"\n";
         afiasreDCuvinteCuPrinText xs (randDeInceput + 1);
     }
+
+    -- din tuple ul cu lista toate cuvinte , lista toate cuvinte fara dubluri, lista DCuvinte returneaza lista DCuvinte
     al3lea (_,_,a) = a;
+
     sortCrescSauDescresc listaFrecventa tipDeSortare = do {
         if tipDeSortare == "CRESC" then sortOn (\x -> negate (frecventa x)) listaFrecventa;
         else sortOn (\x -> (frecventa x)) listaFrecventa;
     }
+
+    -- returneaza o lista cu elementele comparate mai mare, mai mic sau egal decat un numar
     listaComparata listaFrec tip numar | tip == "mare" = filter (\x -> (frecventa x) > numar ) listaFrec
                                        | tip == "mic" = filter (\x -> (frecventa x) < numar) listaFrec
                                        | otherwise = filter (\x -> (frecventa x) == numar) listaFrec
 
--- ia un string mare si intoarce o lista de cuvinte, impartiera de face pe caracterele spatiu, punct, virgula, linie noua
+-- ia un string mare si intoarce o lista de cuvinte, impartiera de face pe caracterele spatiu, punct, virgula, linie noua ! @ ' "
 listareCuvinte:: String -> String -> [String] -> [[String]]
 listareCuvinte [] cuv  toateCuv = do {
     return (toateCuv ++ [cuv]);
 }
 listareCuvinte (x: xs) cuvantCurent toateCuvintele = do {
-    if( x == ' ' || x == '.' || x == ',' || x == '\n' || x == '!' || x == '?') then do {
+    if( x == ' ' || x == '.' || x == ',' || x == '\n' || x == '!' || x == '?' || x == '\'' || x == '\"') then do {
         if(cuvantCurent == "") then listareCuvinte xs "" toateCuvintele
         else do {
             toateCuvUpdate <- return (toateCuvintele ++ [cuvantCurent]);
@@ -261,7 +264,7 @@ afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     runMeniu numeFisier;
 }
 
-
+-- scrie la finalul fisieruli o propozitie sau un cuvant
 scrieLaFinalulFisierului:: String -> IO()
 scrieLaFinalulFisierului numeFisier = do {
     hFisier <- openFile numeFisier AppendMode;
@@ -278,8 +281,8 @@ scrieLaFinalulFisierului numeFisier = do {
 
     setSGR ([Reset ]);
     case pozitie of {
-        Just pozitie -> printTextPeEcran (pozitie + 1) 4 "Apasati oricetasta pentru a va intoarce la meniu.";
-        Nothing -> printTextPeEcran 2 4 "Apasati oricetasta pentru a va intoarce la meniu.";
+        Just pozitie -> printTextPeEcran (pozitie + 1) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+        Nothing -> printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
     };
 
     getLine;
@@ -289,6 +292,7 @@ scrieLaFinalulFisierului numeFisier = do {
 
 }
 
+-- afiseaza daca nu au fost gasit fisiere pentru functia de mai jos
 afisareFinalPentruCuvinteDupaFrecvent::String -> Int -> IO()
 afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
     case l of 
@@ -303,6 +307,7 @@ afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
         runMeniu numeFis;
 }
 
+-- face afisare de cuvinte in functie de frecventa, daca este mai mica mare sau egala fata de un numar introdus de user
 afisareCuvinteDupaFrecventa:: String -> Int -> IO()
 afisareCuvinteDupaFrecventa numeFisier numarIntrodus = do {
     liste <- (returnareToateListele numeFisier);
@@ -351,6 +356,7 @@ afisareCuvinteDupaFrecventa numeFisier numarIntrodus = do {
     
 }
 
+-- printeaza lista de dcuvinte crescator sau descrescator
 printListaFrecventa:: [DCuvant] -> Int -> IO()
 printListaFrecventa listaCuv tipAfisare 
                     | tipAfisare == 1 = afiasreDCuvinteCuPrinText (sortCrescSauDescresc listaCuv "CRESC") 1
