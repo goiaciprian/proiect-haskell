@@ -2,10 +2,12 @@ import System.IO;
 import System.Directory;
 import System.Console.ANSI;
 import Control.Exception;
+import Data.List;
+
 
 
 data DCuvant = Cuv {rep::String, frecventa::Int }
-    deriving (Read, Show);
+    deriving (Ord, Eq, Show);
 
 class DCuvantFunctii a where
     -- pentru fiecare cuvant citit din fisier cauta de cate ori apare
@@ -14,6 +16,11 @@ class DCuvantFunctii a where
     gasesteCelMaiPutinFrecventCuvant :: [a] -> a -> a
     cautaFrecventaCuvant:: String -> [a] -> IO Int
     afiasreDCuvinteCuPrinText:: [a] -> Int -> IO()
+    -- returneaza al 3-lea element duntr-un tuple
+    al3lea:: ([String], [String], [a]) -> [a]
+    sortCrescSauDescresc:: [a] -> String -> [a]
+    listaComparata:: [a] -> String -> Int -> [a]
+
 
 instance DCuvantFunctii DCuvant where
     gasesteFrecventaPentruFiecareCuvant _ [] cuvinte = cuvinte;
@@ -51,17 +58,26 @@ instance DCuvantFunctii DCuvant where
 
     afiasreDCuvinteCuPrinText [] _ = return ();
     afiasreDCuvinteCuPrinText (x: xs) randDeInceput = do {
-        spatii <- return (repcar ' ' (10 - length (rep x)));
+        spatii <- return (repcar ' ' (18 - length (rep x)));
         printTextPeEcran randDeInceput 4 $ (rep x) ++ spatii  ++ " --- " ++ show (frecventa x) ++ "\n";
         afiasreDCuvinteCuPrinText xs (randDeInceput + 1);
     }
+    al3lea (_,_,a) = a;
+    sortCrescSauDescresc listaFrecventa tipDeSortare = do {
+        if tipDeSortare == "CRESC" then sortOn (\x -> negate (frecventa x)) listaFrecventa;
+        else sortOn (\x -> (frecventa x)) listaFrecventa;
+    }
+    listaComparata listaFrec tip numar | tip == "mare" = filter (\x -> (frecventa x) > numar ) listaFrec
+                                       | tip == "mic" = filter (\x -> (frecventa x) < numar) listaFrec
+                                       | otherwise = filter (\x -> (frecventa x) == numar) listaFrec
 
+-- ia un string mare si intoarce o lista de cuvinte, impartiera de face pe caracterele spatiu, punct, virgula, linie noua
 listareCuvinte:: String -> String -> [String] -> [[String]]
 listareCuvinte [] cuv  toateCuv = do {
     return (toateCuv ++ [cuv]);
 }
 listareCuvinte (x: xs) cuvantCurent toateCuvintele = do {
-    if( x == ' ' || x == '.' || x == ',' || x == '\n') then do {
+    if( x == ' ' || x == '.' || x == ',' || x == '\n' || x == '!' || x == '?') then do {
         if(cuvantCurent == "") then listareCuvinte xs "" toateCuvintele
         else do {
             toateCuvUpdate <- return (toateCuvintele ++ [cuvantCurent]);
@@ -74,6 +90,7 @@ listareCuvinte (x: xs) cuvantCurent toateCuvintele = do {
 }
 
 -- Citeste dintr-un fisier continutul si adauga fiecare cuvant intr-o lista
+-- returneaza un tuple cu lista cu toate cuvintele si un o lista cu toate cuvintele dar fara sa se repete
 citesteDinFisier:: String -> IO([String], [String])
 citesteDinFisier  numeFis = do {
 
@@ -81,7 +98,9 @@ citesteDinFisier  numeFis = do {
 
     singleWords <- return (head (listareCuvinte contents "" []));
 
-    return (singleWords, (stergeDuplicate  singleWords))
+    singleWordsFaraSpatii <- return (filter (not . null) singleWords);
+
+    return (singleWordsFaraSpatii, (stergeDuplicate  singleWordsFaraSpatii))
 }
 -- sterge elementele duplicate dintr-o lista
 -- `elem` returneaza adevarat daca lista(al 2-lea argument) contine elementul (1 argument)
@@ -133,41 +152,48 @@ printTextPeEcran rand coloana text = do {
     setSGR [Reset];
 }
 
+-- ia un caracter a si un numar b si returneaza un string cu a repetat de b ori 
 repcar::Char -> Int -> String;
 repcar car 0 = [];
 repcar car nr = car:(repcar car (nr - 1));
 
+-- citeste alegerea utilizatorului din meniu, daca nu este un numar intreg arunca o eroare
+citesteAlegereUser:: String -> Int -> Int -> IO Int
+citesteAlegereUser cuvant rand coloana = do {
 
-citesteAlegereUser:: IO Int
-citesteAlegereUser = do {
-
-    printTextPeEcran 9 4 "Alegere: ";
+    printTextPeEcran rand coloana cuvant;
     nr <- getLine;
     recit <- try (evaluate (read nr::Int))::IO  (Either SomeException Int);
     case recit of
     {
-        Left exc -> setCursorPosition 9 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran 10 4 $ "Eroare: " ++ show exc)>>citesteAlegereUser;
+        Left exc -> setCursorPosition rand coloana>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran (rand+1) coloana $ "Eroare: " ++ show exc)>>citesteAlegereUser cuvant rand coloana;
 
         Right value -> clearScreen>>return value;
     }
 }
 
-afiseazaMeniu::IO Int
-afiseazaMeniu = do {
+-- afisarea meniului
+afiseazaMeniu:: String -> IO Int
+afiseazaMeniu numeFis = do {
+    printTextPeEcran 0 4 "Fisierul curent: ";
+    setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Green ];
+    printTextPeEcran 0 21 numeFis;
+
     printTextPeEcran 1 4 "1. Schimbati fisierul. \n";
     printTextPeEcran 2 4 "2. Afisare cel mai frecvent cuvant.\n";
     printTextPeEcran 3 4 "3. Afisare cel mai putin frecvent cuvant.\n";
     printTextPeEcran 4 4 "4. Gaseste frecventa unui cuvant.\n";
     printTextPeEcran 5 4 "5. Afiseaza toate cuvintele.\n";
+    printTextPeEcran 6 4 "6. Afisati cuvintele dupa frecventa.\n";
+    printTextPeEcran 7 4 "7. Adaugati un rand nou la finalul fisierului.\n";
 
-    printTextPeEcran 7 4 "0. Tastati 0 pentru iesire.\n";
+    printTextPeEcran 9 4 "0. Tastati 0 pentru iesire.\n";
 
-    citesteAlegereUser;
+    citesteAlegereUser "Alegere: " 11 4;
 }
 
-al3lea:: ([String], [String], [DCuvant]) -> [DCuvant]
-al3lea (_,_,a) = a;
 
+-- primeste numeleFisierul si returneaza toate listele necesare in rularea programului ([toateCuvintele], [toateCuvinteleFaraDubluri], [listaCuFrecvente])
 returnareToateListele::String -> IO ([String], [String], [DCuvant])
 returnareToateListele numeFisier= do {
     liste <- (citesteDinFisier numeFisier);
@@ -177,6 +203,7 @@ returnareToateListele numeFisier= do {
     return (listaCompleta, listaFaraDubluri, listaFrecvente);
 }
 
+-- afiseaza cel mai frecvent cuvant
 afiseazaCelMaiFrecventCuvant::String -> IO()
 afiseazaCelMaiFrecventCuvant numeFisier = do {
     liste <- (returnareToateListele numeFisier);
@@ -193,7 +220,7 @@ afiseazaCelMaiFrecventCuvant numeFisier = do {
     runMeniu numeFisier;
 
 }
-
+-- afiseaza cel mai putin frecvent cuvant 
 afiseazaCelMaiPutinFrecventCuvant::String -> IO()
 afiseazaCelMaiPutinFrecventCuvant numeFisier = do {
     liste <- (returnareToateListele numeFisier);
@@ -210,6 +237,7 @@ afiseazaCelMaiPutinFrecventCuvant numeFisier = do {
     runMeniu numeFisier;
 }
 
+-- afiseaza frecvena unui cuvant dat de user 
 afiseazaFrecventaCuvantDeLaUser:: String -> IO ()
 afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     liste <- (returnareToateListele numeFisier);
@@ -233,38 +261,145 @@ afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     runMeniu numeFisier;
 }
 
-afiseazaToateCuvintele:: String -> IO()
-afiseazaToateCuvintele numeFisier = do {
-    liste <- (returnareToateListele numeFisier);
-    listaFrecvente <- return (al3lea liste);
 
+scrieLaFinalulFisierului:: String -> IO()
+scrieLaFinalulFisierului numeFisier = do {
+    hFisier <- openFile numeFisier AppendMode;
     clearScreen ;
+    printTextPeEcran 2 4 "Adaugati text la finalul fisierului:\n";
+    setSGR ([ SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Green ]);
+    setCursorPosition 3 4;
+    linieNoua <- getLine;
+    hPutStrLn hFisier linieNoua;
+    hClose hFisier;
 
-    afiasreDCuvinteCuPrinText listaFrecvente 1;
+    pozitieCursor <- (getCursorPosition) ;
+    pozitie <- return (fmap fst pozitieCursor);
 
-    printTextPeEcran ((length listaFrecvente) + 2) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+    setSGR ([Reset ]);
+    case pozitie of {
+        Just pozitie -> printTextPeEcran (pozitie + 1) 4 "Apasati oricetasta pentru a va intoarce la meniu.";
+        Nothing -> printTextPeEcran 2 4 "Apasati oricetasta pentru a va intoarce la meniu.";
+    };
 
     getLine;
 
-    clearScreen;
+    clearScreen ;
     runMeniu numeFisier;
+
 }
 
+afisareFinalPentruCuvinteDupaFrecvent::String -> Int -> IO()
+afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
+    case l of 
+        {
+            0 -> printTextPeEcran (l) 4 "Nu au fost gasite elemente."; 
+            _ -> printTextPeEcran 0 0 "";
+        };
+
+        printTextPeEcran (l+2) 4 "Apasati oricetasta pentru a va intoarce la meniu.";
+        getLine;
+        clearScreen ;
+        runMeniu numeFis;
+}
+
+afisareCuvinteDupaFrecventa:: String -> Int -> IO()
+afisareCuvinteDupaFrecventa numeFisier numarIntrodus = do {
+    liste <- (returnareToateListele numeFisier);
+    listaFrecventa <- return (al3lea liste);
+    clearScreen ;
+
+    if numarIntrodus == -1 then do {
+        numar <- (citesteAlegereUser "Numar de comparat: " 2 4);
+        afisareCuvinteDupaFrecventa numeFisier numar;
+    } else do {
+        clearScreen ;
+        printTextPeEcran 2 4 "Selectati 1 pentru afisare mai mare.";
+        printTextPeEcran 3 4 "Selectati 2 pentru afisare mai mica.";
+        printTextPeEcran 4 4 "Selectati 3 pentru afisare egala." ;
+        printTextPeEcran 5 4 "Selectati 0 pentru a va intoarce la meniu." ;
+
+        numar <- (citesteAlegereUser "Alegere: " 7 4);
+        l <- return (2);
+        case numar of {
+            1 -> do {
+                clearScreen; 
+                lista <- return $ listaComparata listaFrecventa "mare" numarIntrodus;
+                l <- return (length lista);
+                afiasreDCuvinteCuPrinText lista 1;
+                afisareFinalPentruCuvinteDupaFrecvent numeFisier l;
+            };
+            2 -> do {
+                clearScreen; 
+                lista <- return (listaComparata listaFrecventa "mic" numarIntrodus);
+                l <- return (length lista);
+                afiasreDCuvinteCuPrinText lista 1;
+                afisareFinalPentruCuvinteDupaFrecvent numeFisier l;
+            };
+            3 -> do {
+                clearScreen; 
+                lista <- return (listaComparata listaFrecventa "egal" numarIntrodus);
+                l <- return (length lista);
+                afiasreDCuvinteCuPrinText lista 1;
+                afisareFinalPentruCuvinteDupaFrecvent numeFisier l;
+            };
+            0 -> runMeniu numeFisier;
+            _ -> afisareCuvinteDupaFrecventa numeFisier numarIntrodus;
+        };
+    }
+
+    
+}
+
+printListaFrecventa:: [DCuvant] -> Int -> IO()
+printListaFrecventa listaCuv tipAfisare 
+                    | tipAfisare == 1 = afiasreDCuvinteCuPrinText (sortCrescSauDescresc listaCuv "CRESC") 1
+                    | tipAfisare == 2 = afiasreDCuvinteCuPrinText (sortCrescSauDescresc listaCuv "DESCRESC") 1
+                    | otherwise = afiasreDCuvinteCuPrinText listaCuv 1
+
+-- afiseaza frecventa pentru toate cuvintele 
+afisareToateCuvintele:: String -> Int -> IO()
+afisareToateCuvintele numeFis tipAfisare = do {
+    liste <- (returnareToateListele numeFis);
+    listaFrecventa <- return (al3lea liste);
+
+    marimeListaFrecventa <- return (length listaFrecventa);
+
+    clearScreen;
+
+    printListaFrecventa listaFrecventa tipAfisare;
+    
+    putStrLn "";
+    putStrLn "Apasati orice tasta pentru a va intoarce la meniu.";
+    putStrLn "Apasati 1 pentru sortare crescatoare.";
+    putStrLn "Apasati 2 pentru sortare descrescatoare.";
+
+    ordonare <- getLine;
+
+    if ordonare == "1" then afisareToateCuvintele numeFis 1
+    else if ordonare == "2" then afisareToateCuvintele numeFis 2
+    else clearScreen >> runMeniu numeFis
+} 
+
+-- functie pentru inceperea programului din meniu (fara input si verificare a fisierului din care se citeste)
 runMeniu::String -> IO()
 runMeniu numeFisier = do {
-    alegere <- afiseazaMeniu;
+    alegere <- afiseazaMeniu numeFisier;
     case alegere of
     {
         1 -> runProgram;
         2 -> afiseazaCelMaiFrecventCuvant numeFisier;
         3 -> afiseazaCelMaiPutinFrecventCuvant numeFisier;
         4 -> afiseazaFrecventaCuvantDeLaUser numeFisier;
-        5 -> afiseazaToateCuvintele numeFisier;
+        5 -> afisareToateCuvintele numeFisier 0;
+        6 -> afisareCuvinteDupaFrecventa numeFisier (-1);
+        7 -> scrieLaFinalulFisierului numeFisier;
         0 -> return ();
-        _ -> setCursorPosition 9 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 10 4 "Alegerea nu exista.">>runMeniu numeFisier;
+        _ -> setCursorPosition 11 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 12 4 "Alegerea nu exista.">>runMeniu numeFisier;
     }
 }
 
+-- intrare in program
 runProgram:: IO()
 runProgram = do {
     clearScreen;
