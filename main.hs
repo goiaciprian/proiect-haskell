@@ -17,6 +17,7 @@ class DCuvantFunctii a where
     al3lea:: ([String], [String], [a]) -> [a]
     sortCrescSauDescresc:: [a] -> String -> [a]
     listaComparata:: [a] -> String -> Int -> [a]
+    frecventaLiteraInceput:: [a] -> Char -> Int -> [a] -> (Int, [a])
 
 
 instance DCuvantFunctii DCuvant where
@@ -53,7 +54,7 @@ instance DCuvantFunctii DCuvant where
         }
     }
 
-    -- afiseaza cuvat   --- frecventa pentru fiecare DCuvant 
+    -- afiseaza frecventa pentru fiecare DCuvant 
     afiasreDCuvinteCuPrinText [] _ = return ();
     afiasreDCuvinteCuPrinText (x: xs) randDeInceput = do {
         spatii <- return (repcar ' ' (18 - length (rep x)));
@@ -73,6 +74,10 @@ instance DCuvantFunctii DCuvant where
     listaComparata listaFrec tip numar | tip == "mare" = filter (\x -> (frecventa x) > numar ) listaFrec
                                        | tip == "mic" = filter (\x -> (frecventa x) < numar) listaFrec
                                        | otherwise = filter (\x -> (frecventa x) == numar) listaFrec
+
+    frecventaLiteraInceput [] _ nrAparitii cuvinteCuLitera = (nrAparitii, cuvinteCuLitera);
+    frecventaLiteraInceput (x:xs) litera nrAparitii cuvinte | head (rep x) == litera = frecventaLiteraInceput xs litera (nrAparitii + (frecventa x)) (cuvinte ++ [x])
+                                                            | otherwise = frecventaLiteraInceput xs litera nrAparitii cuvinte
 
 -- ia un string mare si intoarce o lista de cuvinte, impartiera de face pe caracterele spatiu, punct, virgula, linie noua ! @ ' "
 listareCuvinte:: String -> String -> [String] -> [[String]]
@@ -189,10 +194,11 @@ afiseazaMeniu numeFis = do {
     printTextPeEcran 5 4 "5. Afiseaza toate cuvintele.\n";
     printTextPeEcran 6 4 "6. Afisati cuvintele dupa frecventa.\n";
     printTextPeEcran 7 4 "7. Adaugati un rand nou la finalul fisierului.\n";
+    printTextPeEcran 8 4 "8. Afisare cuvinte in functie de litera de inceput.\n";
 
-    printTextPeEcran 9 4 "0. Tastati 0 pentru iesire.\n";
+    printTextPeEcran 10 4 "0. Tastati 0 pentru iesire.\n";
 
-    citesteAlegereUser "Alegere: " 11 4;
+    citesteAlegereUser "Alegere: " 12 4;
 }
 
 
@@ -292,6 +298,35 @@ scrieLaFinalulFisierului numeFisier = do {
 
 }
 
+afisareFrecventaLiteraDeInceput::String -> IO()
+afisareFrecventaLiteraDeInceput numeFisier = do {
+    liste <- returnareToateListele(numeFisier);
+    listaFrecventa <- return (al3lea liste);
+
+    clearScreen ;
+    printTextPeEcran 2 4 "Scrieti o litera: ";
+    litera <- getChar ;
+    aparTuple <- return (frecventaLiteraInceput listaFrecventa litera 0 []);
+    aparitii <-  return (fst aparTuple);
+    cuvinte <- return (snd aparTuple);
+
+    afiasreDCuvinteCuPrinText cuvinte 4;
+
+    pozitieCursor <- getCursorPosition ;
+
+    rand <- return (fmap fst pozitieCursor);
+
+    case rand of {
+        Just rand -> setSGR ([SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Yellow ])>>(printTextPeEcran (rand+1) 4 $ (show aparitii) ++ " cuvinte incep cu litera " ++ [litera] ++ " .")>>printTextPeEcran (rand +3) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+        Nothing -> (printTextPeEcran 4 4 $ "Nu exista cuvinte care incep cu litera: " ++ [litera])>>printTextPeEcran 5 4 "Apasati orice tasta pentru a va intoarce la meniu."
+    };
+
+    getLine ;
+    getLine ;
+    clearScreen ;
+    runMeniu numeFisier;
+}
+
 -- afiseaza daca nu au fost gasit fisiere pentru functia de mai jos
 afisareFinalPentruCuvinteDupaFrecvent::String -> Int -> IO()
 afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
@@ -306,6 +341,7 @@ afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
         clearScreen ;
         runMeniu numeFis;
 }
+
 
 -- face afisare de cuvinte in functie de frecventa, daca este mai mica mare sau egala fata de un numar introdus de user
 afisareCuvinteDupaFrecventa:: String -> Int -> IO()
@@ -400,8 +436,9 @@ runMeniu numeFisier = do {
         5 -> afisareToateCuvintele numeFisier 0;
         6 -> afisareCuvinteDupaFrecventa numeFisier (-1);
         7 -> scrieLaFinalulFisierului numeFisier;
+        8 -> afisareFrecventaLiteraDeInceput numeFisier;
         0 -> return ();
-        _ -> setCursorPosition 11 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 12 4 "Alegerea nu exista.">>runMeniu numeFisier;
+        _ -> setCursorPosition 12 4>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>printTextPeEcran 13 4 "Alegerea nu exista.">>runMeniu numeFisier;
     }
 }
 
