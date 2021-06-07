@@ -127,6 +127,14 @@ stergeDuplicate = dacaAfostVazut []
               | x `elem` vazut = dacaAfostVazut vazut xs
               | otherwise = dacaAfostVazut (vazut ++ [x]) xs
 
+
+sterge :: [String] -> [String] -> IO [String]
+sterge [] lista = return lista
+sterge (x:xs) lista = do {
+    if x `elem` lista then sterge xs lista
+    else sterge xs (lista ++ [x])
+}
+
 -- returneaza de cate ori apare un cuvant in lista data
 wordFreq :: [String] -> String -> Int -> Int
 wordFreq [] _ nr = nr
@@ -182,7 +190,7 @@ citesteAlegereUser cuvant rand coloana = do {
     recit <- try (evaluate (read nr::Int))::IO  (Either SomeException Int);
     case recit of
     {
-        Left exc -> setCursorPosition rand coloana>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran (rand+1) coloana $ "Eroare: " ++ show exc)>>citesteAlegereUser cuvant rand coloana;
+        Left exc -> setCursorPosition rand coloana>>clearFromCursorToLineEnd>>setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Red]>>(printTextPeEcran (rand+1) coloana $ "Trebuie sa introduceti un numar de la 0 - 9. Eroare: " ++ show exc)>>citesteAlegereUser cuvant rand coloana;
 
         Right value -> clearScreen>>return value;
     }
@@ -230,7 +238,7 @@ afiseazaCelMaiFrecventCuvant numeFisier = do {
     celMaiFrecventCuv <- return (gasesteCelMaiFrecventCuvant listaFrecvente (Cuv "" 0));
     clearScreen;
     printTextPeEcran 1 4 $ "Cel mai frecvent cuvant este: \"" ++ (rep celMaiFrecventCuv) ++ "\", numar aparitii: " ++ show (frecventa celMaiFrecventCuv);
-    printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+    printTextPeEcran 2 4 "Apasati enter pentru meniu";
 
     getLine;
 
@@ -247,7 +255,7 @@ afiseazaCelMaiPutinFrecventCuvant numeFisier = do {
     celMaiPutinFrecvent <- return (gasesteCelMaiPutinFrecventCuvant listaFrecvente (Cuv "test" 10000));
     clearScreen ;
     printTextPeEcran 1 4 $ "Cel mai putin frecvent cuvant este: \"" ++ (rep celMaiPutinFrecvent) ++ "\", numar de aparitii: " ++ show (frecventa celMaiPutinFrecvent);
-    printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+    printTextPeEcran 2 4 "Apasati enter pentru meniu";
 
     getLine;
 
@@ -271,7 +279,7 @@ afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     if frecventaCuvant == -1 then setSGR [SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Yellow]>>printTextPeEcran 4 4 "Cuvantul nu a fost gasit.";
     else printTextPeEcran 4 4 $ "Pentru cuvantul: \"" ++ cuvant ++ "\" frecventa este: " ++ show frecventaCuvant ++ ".";
 
-    printTextPeEcran 5 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+    printTextPeEcran 5 4 "Apasati enter pentru meniu";
 
     getLine;
 
@@ -279,6 +287,7 @@ afiseazaFrecventaCuvantDeLaUser numeFisier = do {
     runMeniu numeFisier;
 }
 
+-- afisare formatata pentru fiecare litere din alfabet cu frecventa
 afisareListaStatisticiLitere::[(Char, Int)] -> Int -> IO()
 afisareListaStatisticiLitere [] _ = return ()
 afisareListaStatisticiLitere (x:xs) randInceput = do {
@@ -288,6 +297,7 @@ afisareListaStatisticiLitere (x:xs) randInceput = do {
     afisareListaStatisticiLitere xs (randInceput +1);
 }
 
+-- afisare pentru litere alfabet cu frecventa
 afisareStatisticiLitereInceput::String -> IO ()
 afisareStatisticiLitereInceput numeFisier = do {
     liste <- (returnareToateListele numeFisier);
@@ -303,8 +313,8 @@ afisareStatisticiLitereInceput numeFisier = do {
     pozitie <- return (fmap fst pozitieCursor);
 
     case pozitie of {
-        Just pozitie -> printTextPeEcran (pozitie + 2) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
-        Nothing -> printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+        Just pozitie -> printTextPeEcran (pozitie + 2) 4 "Apasati enter pentru meniu";
+        Nothing -> printTextPeEcran 2 4 "Apasati enter pentru meniu";
     };
 
     getLine ;
@@ -330,8 +340,8 @@ scrieLaFinalulFisierului numeFisier = do {
 
     setSGR ([Reset ]);
     case pozitie of {
-        Just pozitie -> printTextPeEcran (pozitie + 1) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
-        Nothing -> printTextPeEcran 2 4 "Apasati orice tasta pentru a va intoarce la meniu.";
+        Just pozitie -> printTextPeEcran (pozitie + 1) 4 "Apasati enter pentru meniu";
+        Nothing -> printTextPeEcran 2 4 "Apasati enter pentru meniu";
     };
 
     getLine;
@@ -341,6 +351,7 @@ scrieLaFinalulFisierului numeFisier = do {
 
 }
 
+-- afiseaza frecventa si cuvintele care incep cu o litera de la user
 afisareFrecventaLiteraDeInceput::String -> IO()
 afisareFrecventaLiteraDeInceput numeFisier = do {
     liste <- returnareToateListele(numeFisier);
@@ -360,8 +371,8 @@ afisareFrecventaLiteraDeInceput numeFisier = do {
     rand <- return (fmap fst pozitieCursor);
 
     case rand of {
-        Just rand -> setSGR ([SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Yellow ])>>(printTextPeEcran (rand+1) 4 $ (show aparitii) ++ " cuvinte incep cu litera " ++ [litera] ++ " .")>>printTextPeEcran (rand +3) 4 "Apasati orice tasta pentru a va intoarce la meniu.";
-        Nothing -> (printTextPeEcran 4 4 $ "Nu exista cuvinte care incep cu litera: " ++ [litera])>>printTextPeEcran 5 4 "Apasati orice tasta pentru a va intoarce la meniu."
+        Just rand -> setSGR ([SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid Yellow ])>>(printTextPeEcran (rand+1) 4 $ (show aparitii) ++ " cuvinte incep cu litera " ++ [litera] ++ " .")>>printTextPeEcran (rand +3) 4 "Apasati enter pentru meniu";
+        Nothing -> (printTextPeEcran 4 4 $ "Nu exista cuvinte care incep cu litera: " ++ [litera])>>printTextPeEcran 5 4 "Apasati enter pentru meniu"
     };
 
     getLine ;
@@ -375,11 +386,11 @@ afisareFinalPentruCuvinteDupaFrecvent::String -> Int -> IO()
 afisareFinalPentruCuvinteDupaFrecvent numeFis l = do {
     case l of 
         {
-            0 -> printTextPeEcran (l) 4 "Nu au fost gasite elemente."; 
+            0 -> printTextPeEcran (l) 4 "Nu au fost gasite cuvnite."; 
             _ -> printTextPeEcran 0 0 "";
         };
 
-        printTextPeEcran (l+2) 4 "Apasati oricetasta pentru a va intoarce la meniu.";
+        printTextPeEcran (l+2) 4 "Apasati enter pentru meniu";
         getLine;
         clearScreen ;
         runMeniu numeFis;
@@ -398,10 +409,11 @@ afisareCuvinteDupaFrecventa numeFisier numarIntrodus = do {
         afisareCuvinteDupaFrecventa numeFisier numar;
     } else do {
         clearScreen ;
-        printTextPeEcran 2 4 "Selectati 1 pentru afisare mai mare.";
-        printTextPeEcran 3 4 "Selectati 2 pentru afisare mai mica.";
-        printTextPeEcran 4 4 "Selectati 3 pentru afisare egala." ;
-        printTextPeEcran 5 4 "Selectati 0 pentru a va intoarce la meniu." ;
+        printTextPeEcran 1 4 $ "Numar de comaparat: " ++ (show numarIntrodus);
+        printTextPeEcran 2 4 "1. Afisati cuvintele cu frecventa mai mari.";
+        printTextPeEcran 3 4 "2. Afisati cuvintele cu frecventa mai mici";
+        printTextPeEcran 4 4 "3. Afisati cuvintele cu frecventa egala." ;
+        printTextPeEcran 5 4 "0. Intoarcere la meniu" ;
 
         numar <- (citesteAlegereUser "Alegere: " 7 4);
         l <- return (2);
@@ -455,7 +467,7 @@ afisareToateCuvintele numeFis tipAfisare = do {
     printListaFrecventa listaFrecventa tipAfisare;
     
     putStrLn "";
-    putStrLn "Apasati orice tasta pentru a va intoarce la meniu.";
+    putStrLn "Apasati enter pentru meniu";
     putStrLn "Apasati 1 pentru sortare crescatoare.";
     putStrLn "Apasati 2 pentru sortare descrescatoare.";
 
