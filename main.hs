@@ -204,11 +204,11 @@ afiseazaMeniu numeFis = do {
     printTextPeEcran 0 21 numeFis;
 
     printTextPeEcran 1 4 "1. Schimbati fisierul. \n";
-    printTextPeEcran 2 4 "2. Afisare cel mai frecvent cuvant.\n";
-    printTextPeEcran 3 4 "3. Afisare cel mai putin frecvent cuvant.\n";
+    printTextPeEcran 2 4 "2. Afisare cel mai utilizat cuvant\n";
+    printTextPeEcran 3 4 "3. Afisare cel mai rar cuvant folosit.\n";
     printTextPeEcran 4 4 "4. Gaseste frecventa unui cuvant.\n";
     printTextPeEcran 5 4 "5. Afiseaza toate cuvintele.\n";
-    printTextPeEcran 6 4 "6. Afisati cuvintele dupa frecventa.\n";
+    printTextPeEcran 6 4 "6. Afisati cuvintele dupa aparitie.\n";
     printTextPeEcran 7 4 "7. Adaugati un rand nou la finalul fisierului.\n";
     printTextPeEcran 8 4 "8. Afisare cuvinte in functie de litera de inceput.\n";
     printTextPeEcran 9 4 "9. Afisare statistici litere inceput \n";
